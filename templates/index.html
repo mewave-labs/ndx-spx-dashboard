@@ -1,0 +1,818 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>纳指 / 标普研究</title>
+<style>
+:root{
+  --bg:#0b0e13;--panel:#12161d;--panel2:#161b24;--line:#242b37;
+  --fg:#e7eaf0;--muted:#93a0b4;--dim:#6b7789;
+  --red:#ff6b6b;--green:#3ddc97;--amber:#ffb454;--blue:#5aa9ff;--purple:#b98bff;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.6 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1440px;margin:0 auto;padding:24px 20px 48px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap}
+h1{font-size:22px;margin:0 0 4px;letter-spacing:.5px}
+h2{font-size:15px;margin:0 0 12px;color:var(--fg)}
+.meta{color:var(--muted);font-size:12.5px}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);vertical-align:2px;margin-left:6px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px;border:1px solid var(--line)}
+.badge.live{color:var(--green);border-color:#1d5c45;background:#0f2a20}
+.badge.demo{color:var(--amber);border-color:#5c4a1d;background:#2a2410}
+.banner{border:1px solid #5c4a1d;background:#221d0f;color:var(--amber);
+  border-radius:10px;padding:10px 14px;margin:16px 0;font-size:13px}
+.banner.hide{display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.card .k{color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.card .v{font-size:24px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
+.card .s{font-size:12px;color:var(--muted);margin-top:2px}
+.up{color:var(--red)} .down{color:var(--green)} .flat{color:var(--muted)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}
+.panel .sub{color:var(--muted);font-size:12.5px;margin:-6px 0 14px}
+.cadence{display:grid;grid-template-columns:minmax(240px,1.1fr) 2fr;gap:24px}
+@media(max-width:900px){.cadence{grid-template-columns:1fr}}
+.tier{font-size:34px;font-weight:700;line-height:1.15}
+.tier.t0{color:var(--red)} .tier.t1{color:var(--amber)} .tier.t2{color:var(--blue)}
+.tier.t3{color:var(--green)} .tier.t4{color:var(--purple)}
+.amount{font-size:26px;font-weight:600;margin-top:10px;font-variant-numeric:tabular-nums}
+.channel{color:var(--fg);margin-top:6px;font-size:13.5px}
+.summary{color:var(--muted);margin-top:10px;font-size:13px}
+.reasons{list-style:none;padding:0;margin:0}
+.reasons li{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.reasons li:last-child{border-bottom:0}
+.impact{min-width:38px;text-align:center;border-radius:6px;font-size:12px;height:22px;line-height:22px}
+.i-pos{background:#0f2a20;color:var(--green)} .i-neg{background:#2a1414;color:var(--red)} .i-zero{background:#1a1f28;color:var(--muted)}
+.factor{min-width:96px;color:var(--fg)} .state{color:var(--muted);min-width:150px}
+.note{color:var(--dim)}
+.triggers{margin:14px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
+.triggers li{margin:4px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;
+  font-variant-numeric:tabular-nums;white-space:nowrap}
+th{color:var(--muted);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--panel2)}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+tbody tr:hover{background:#171d27}
+.name{max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.prem{font-weight:600}
+.prem.cheap{color:var(--green)} .prem.mid{color:var(--amber)} .prem.hot{color:var(--red)}
+.st{font-size:11.5px;padding:1px 7px;border-radius:5px;border:1px solid var(--line)}
+.st.ok{color:var(--green);border-color:#1d5c45;background:#0f2a20}
+.st.limited{color:var(--amber);border-color:#5c4a1d;background:#2a2410}
+.st.paused{color:var(--red);border-color:#5c1d1d;background:#2a1010}
+.holding-tag{font-size:10.5px;color:var(--blue);border:1px solid #1d3c5c;background:#0f1e2a;
+  border-radius:4px;padding:0 5px;margin-left:6px}
+.alloc{display:flex;align-items:center;gap:14px;margin:6px 0 16px;flex-wrap:wrap}
+.bar{position:relative;flex:1;min-width:260px;height:14px;background:#1a1f28;border-radius:8px;overflow:hidden}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2b8a6b,#3ddc97)}
+.bar .target{position:absolute;top:0;bottom:0;border-left:1px dashed rgba(255,255,255,.35);
+  border-right:1px dashed rgba(255,255,255,.35);background:rgba(90,169,255,.10)}
+.alloc .txt{color:var(--muted);font-size:12.5px}
+.empty{color:var(--dim);padding:18px 10px;text-align:center}
+.tag-t1{display:inline-block;font-size:10px;padding:0 4px;margin-left:4px;border-radius:3px;
+  color:var(--amber);border:1px solid #5c4a1d;background:#2a2410;vertical-align:1px}
+.tag-live{display:inline-block;font-size:10px;padding:0 4px;margin-left:4px;border-radius:3px;
+  color:var(--green);border:1px solid #1d5c45;background:#0f2a20;vertical-align:1px}
+.signal-yes{font-size:11.5px;padding:2px 8px;border-radius:6px;color:var(--green);
+  border:1px solid #1d5c45;background:#0f2a20;vertical-align:2px;margin-left:6px}
+.signal-no{font-size:11.5px;padding:2px 8px;border-radius:6px;color:var(--red);
+  border:1px solid #5c1d1d;background:#2a1010;vertical-align:2px;margin-left:6px}
+.btn{margin-left:8px;padding:1px 8px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--fg);font-size:12px;cursor:pointer}
+.btn:hover{border-color:var(--blue);color:var(--blue)}
+.foot-note{color:var(--dim);font-size:12px;margin-top:10px;line-height:1.7}
+.chart{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#0f1115}
+[hidden]{display:none!important}
+.tabs{display:flex;gap:8px;margin:10px 0 8px}
+.tab{padding:7px 18px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  color:var(--muted);font-size:13px;cursor:pointer}
+.tab:hover{color:var(--fg);border-color:#3a4a63}
+.tab.active{background:#1c2532;color:var(--fg);border-color:#3a4a63}
+.state-legend{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 12px;color:var(--muted);font-size:12px}
+.state-legend span{display:inline-flex;align-items:center}
+.state-legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px}
+.sw-up{background:#22c55e}.sw-retreat{background:#eab308}.sw-retreat2{background:#f97316}
+.sw-down{background:#ef4444}.sw-recover{background:#3b82f6}.sw-recover2{background:#a855f7}
+.fund-picker{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:10px 0 12px;
+  padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  color:var(--muted);font-size:13px}
+.fund-picker label{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.fund-picker label.disabled{opacity:.5;cursor:not-allowed}
+.fund-picker input{accent-color:#5aa9ff}
+.season-control{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:10px 0 12px;
+  padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+  color:var(--muted);font-size:12.5px}
+.season-control label{display:inline-flex;align-items:center;gap:8px}
+.season-control input[type=range]{width:160px;accent-color:#5aa9ff}
+.season-control #season-label{color:var(--fg);font-weight:600}
+.chart-wrap{position:relative;line-height:0}
+.chart-guide{position:absolute;top:0;bottom:0;width:1px;display:none;z-index:3;
+  background:rgba(231,234,240,.5);pointer-events:none}
+.chart-tip{position:absolute;display:none;z-index:4;min-width:170px;max-width:360px;
+  padding:8px 10px;border:1px solid #3a4a63;border-radius:8px;background:#0b0e13;
+  color:var(--fg);font-size:12px;line-height:1.65;white-space:nowrap;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.55)}
+.chart-tip .tip-date{color:var(--muted);font-size:11.5px;margin-bottom:4px}
+.chart-tip .tip-row{display:flex;justify-content:space-between;gap:16px}
+.chart-tip .tip-row span{color:var(--muted);max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.chart-tip .tip-row b{font-weight:600}
+.chart-tip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.chart-intro{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:12px 16px;margin:10px 0 14px;color:var(--muted);font-size:13px;line-height:1.8}
+.chart-intro b{color:var(--fg)}
+.chart-intro ol{margin:6px 0 0 20px;padding:0}
+.chart-intro li{margin:3px 0}
+.chart-caveat{color:var(--amber);margin-top:6px;font-size:12.5px}
+.state-head{color:var(--muted);font-size:12.5px;margin:12px 0 8px}
+.state-head b{color:var(--fg)}
+.state-table{margin-top:4px}
+.state-table th,.state-table td{font-size:12px;padding:6px 8px}
+.state-table th:first-child,.state-table td:first-child,.state-table th:nth-child(2),.state-table td:nth-child(2){text-align:left}
+footer{color:var(--dim);font-size:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:14px}
+a{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>纳指 / 标普研究</h1>
+      <nav class="tabs">
+        <button class="tab active" data-page="indicators">指标展示</button>
+        <button class="tab" data-page="technical">技术分析</button>
+      </nav>
+      <div class="meta">
+        数据源 <span id="src" class="badge demo">--</span>
+        · 行情时间 <span id="mkt-ts">--</span>
+        · 观测时间 <span id="ts">--</span>
+        · <span id="countdown">30</span> 秒后刷新
+        · 规则版本 <span id="policy">--</span>
+        <button class="btn" onclick="refresh()" {% if static_mode %}disabled{% endif %}>刷新</button>
+        {% if not static_mode %}<button class="btn" onclick="window.open('/export.html','_blank')">导出 HTML</button>{% endif %}
+      </div>
+    </div>
+    <div class="meta" style="text-align:right">
+      <div>本页只做研究辅助，不构成投资建议</div>
+      <div>场内溢价 = 现价 / IOPV − 1；T-1 溢价 = 现价 / 单位净值 − 1</div>
+    </div>
+  </header>
+
+  <div id="banner" class="banner hide"></div>
+  {% if static_mode %}
+  <div class="banner">静态快照：数据、图表与悬停内容已内嵌，可离线打开；年份/基金筛选已冻结。</div>
+  {% endif %}
+
+  <section class="cards" id="cards" data-page="indicators"></section>
+
+  <section class="panel" data-page="technical" hidden>
+    <h2>纳斯达克100 · 年度走势对比</h2>
+    <div class="sub">
+      横轴固定为 1–12 月，每年一条线；每条线是<strong>该年年初到当日的累计收益（YTD）</strong>，
+      不是单日涨跌幅。每年第一个交易日归一为 0%，纵轴按 10% 刻度。
+    </div>
+    <div class="season-control">
+      <label>起始年份 <input type="range" id="season-start" min="2021" max="2026" step="1" value="2021" {% if static_mode %}disabled{% endif %}></label>
+      <label>结束年份 <input type="range" id="season-end" min="2021" max="2026" step="1" value="2026" {% if static_mode %}disabled{% endif %}></label>
+      <span id="season-label">2021–2026</span>
+    </div>
+    <div class="chart-wrap" id="season-wrap">
+      <img class="chart" id="season-chart" src="{% if static_mode %}{{ season_svg }}{% else %}/api/charts/seasonality.svg?start_year=2021&end_year=2026{% endif %}" alt="纳指100 年度走势对比">
+      <div class="chart-guide" id="season-guide"></div>
+      <div class="chart-tip" id="season-tip"></div>
+    </div>
+    <div class="foot-note">
+      鼠标悬浮显示各年<strong>“年初 → 最近交易日”的累计收益（YTD）</strong>；每行前面的日期是该年对应的交易日，
+      不是单日涨跌，也不是该月收益。
+    </div>
+  </section>
+
+  <section class="panel" data-page="technical" hidden>
+    <h2>纳斯达克100 · 利弗莫尔六状态机（2025-01 至今）</h2>
+    <div class="chart-intro">
+      <div>
+        <b>这个模型用来做什么：</b>
+        它不预测点位，而是把纳指100的价格行为归入六个趋势阶段，回答三个问题：
+        <b>现在是趋势延续、正常回撤，还是趋势转折？</b>
+        以及“这次回撤是一次性的，还是二次转弱？”
+      </div>
+      <div>
+        <b>怎么看这张图：</b>
+        <ol>
+          <li><b>先看背景色/状态</b>：绿色=上升，黄色=回撤，橙色=二次回撤，红色=下降，蓝色=修复，紫色=二次修复。</li>
+          <li><b>再看价格与 200 日线</b>：收盘在 MA200 上方=多头环境；下方=空头环境。均线是“环境”，状态是“阶段”。</li>
+          <li><b>看 ▲ / ▼</b>：▲ 表示切换到上升/修复（转多），▼ 表示切换到回撤/二次回撤/下降（转空）。</li>
+          <li><b>看下方状态表</b>：最近一次切换发生在哪天、收盘多少、触发原因是什么。</li>
+          <li><b>看切换频率</b>：频率高说明震荡、状态反复；频率低说明趋势更稳定。</li>
+        </ol>
+      </div>
+      <div class="chart-caveat">
+        注意：状态在关键点突破/跌破后才切换，天然有滞后；它是趋势描述工具，不是买卖信号。
+      </div>
+    </div>
+    <div class="sub">
+      六状态：上升 / 回撤 / 二次回撤 / 下降 / 修复 / 二次修复。数据为美国纳指100 指数，不使用场内 ETF。
+    </div>
+    <div class="state-legend">
+      <span><i class="sw sw-up"></i>上升</span>
+      <span><i class="sw sw-retreat"></i>回撤</span>
+      <span><i class="sw sw-retreat2"></i>二次回撤</span>
+      <span><i class="sw sw-down"></i>下降</span>
+      <span><i class="sw sw-recover"></i>修复</span>
+      <span><i class="sw sw-recover2"></i>二次修复</span>
+    </div>
+    <div class="chart-wrap" id="ndx-wrap">
+      <img class="chart" src="{% if static_mode %}{{ ndx_svg }}{% else %}/api/charts/ndx.svg{% endif %}" alt="纳斯达克100 利弗莫尔六状态机">
+      <div class="chart-guide" id="ndx-guide"></div>
+      <div class="chart-tip" id="ndx-tip"></div>
+    </div>
+    {% set state_cn = {'uptrend': '上升', 'retreat': '回撤', 'retreat2nd': '二次回撤', 'downtrend': '下降', 'recover': '修复', 'recover2nd': '二次修复', 'range': '震荡'} %}
+    <div class="state-head">
+      当前状态：<b>{{ state_cn.get(ndx_current.get('trend'), '—') }}</b>
+      · 模型仓位：<b>{{ '持有' if ndx_current.get('position') == 'long' else '空仓' }}</b>
+      · 状态切换频率：<b>{{ '%.1f'|format(ndx_frequency) if ndx_frequency else '—' }}</b> 次/年
+      · 最近切换：{{ ndx_current.get('last_transition', {}).get('date', '—') }}
+      · 模型：{{ ndx_model or '—' }}
+    </div>
+    <table class="state-table">
+      <thead><tr><th>日期</th><th>状态</th><th>收盘</th><th>触发原因</th></tr></thead>
+      <tbody>
+      {% for row in ndx_states %}
+        <tr>
+          <td>{{ row.date }}</td>
+          <td>{{ state_cn.get(row.state, row.state) }}</td>
+          <td>{{ '%.2f'|format(row.price) }}</td>
+          <td class="name">{{ row.reason }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty">状态数据暂不可用</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="foot-note">
+      分析规则：<br>
+      1) 以 200 日线判断大方向；收盘在 200 日线上方视为多头环境，下方视为空头环境；<br>
+      2) 多头：突破 20 日高点 → 上升；跌破 20 日低点 → 回撤；再破前次回撤低点 → 二次回撤；跌破 60 日低点 → 下降；<br>
+      3) 空头：突破 20 日高点 → 修复；突破 60 日高点 → 二次修复；<br>
+      4) 状态只在切换时记录，频率 = 区间内切换次数 / 年数；状态是“趋势描述”，不是买卖建议。
+    </div>
+  </section>
+
+  <section class="panel" data-page="technical" hidden>
+    <h2>任意时点买入并持有 5 年的收益</h2>
+    <div class="sub">
+      横轴 = <b>持有到期日</b>（买入日 + 5 年），纵轴 = 从该买入日持有 5 年的累计收益（滚动窗口）。
+      勾选要对比的基金，默认只显示纳指与标普。
+    </div>
+    <div class="fund-picker" id="fund-picker">
+      <label><input type="checkbox" data-code="513100" checked {% if static_mode %}disabled{% endif %}> 国泰纳指100</label>
+      <label><input type="checkbox" data-code="513500" checked {% if static_mode %}disabled{% endif %}> 博时标普500</label>
+      <label><input type="checkbox" data-code="270023" {% if static_mode %}disabled{% endif %}> 广发全球精选</label>
+      <label><input type="checkbox" data-code="000043" {% if static_mode %}disabled{% endif %}> 嘉实美国成长</label>
+      <label class="disabled"><input type="checkbox" disabled> 016701（不足5年）</label>
+      <button class="btn" type="button" id="fund-all" {% if static_mode %}disabled{% endif %}>全选</button>
+    </div>
+    <div class="chart-wrap" id="fund-wrap">
+      <img class="chart" id="fund-chart" src="{% if static_mode %}{{ fund_svg }}{% else %}/api/charts/funds.svg{% endif %}" alt="任意时点买入持有5年的收益">
+      <div class="chart-guide" id="fund-guide"></div>
+      <div class="chart-tip" id="fund-tip"></div>
+    </div>
+    <div class="foot-note">鼠标移到图上可查看该时点的数值。</div>
+    <div class="foot-note">
+      读法：横轴 2026-10 的点 = 2021-10 买入，持有到 2026-10 的收益；纵轴按 25% 刻度。
+      累计净值口径（含分红再投）；只有满 5 年历史的基金才有曲线，016701 成立不足 5 年。
+    </div>
+  </section>
+
+  <section class="panel" data-page="indicators">
+    <h2>场内 · 纳指 <span class="tag" id="ex-ndx-count">--</span></h2>
+    <div class="sub">纳指100 + 纳指科技；按溢价从高到低。溢价优先 IOPV（收盘后为最后盘中估值），IOPV 不可得时才用 T-1 净值并标 <span class="tag-t1">T-1</span>。</div>
+    <table>
+      <thead><tr>
+        <th>代码</th><th>名称</th><th>现价</th><th>涨幅</th>
+        <th>成交额</th><th>IOPV</th><th>溢价（口径）</th><th>T-1 净值</th><th>T-1 溢价</th><th>年费率</th>
+      </tr></thead>
+      <tbody id="ex-ndx-body"></tbody>
+    </table>
+  </section>
+
+  <section class="panel" data-page="indicators">
+    <h2>场内 · 标普500 <span class="tag" id="ex-spx-count">--</span></h2>
+    <div class="sub">标普500 核心 ETF；按溢价从高到低。</div>
+    <table>
+      <thead><tr>
+        <th>代码</th><th>名称</th><th>现价</th><th>涨幅</th>
+        <th>成交额</th><th>IOPV</th><th>溢价（口径）</th><th>T-1 净值</th><th>T-1 溢价</th><th>年费率</th>
+      </tr></thead>
+      <tbody id="ex-spx-body"></tbody>
+    </table>
+  </section>
+
+  <section class="panel" data-page="indicators">
+    <h2>场外 · 纳指100 指数 / ETF 联接 <span class="tag" id="otc-count">--</span></h2>
+    <div class="sub">只统计跟踪纳斯达克100 的指数 / ETF 联接基金；按“可申购 → 限额从大到小 → 暂停”排序。场外表仅作信息展示，不参与加仓判断。</div>
+    <table>
+      <thead><tr>
+        <th>代码</th><th>名称</th><th>净值</th><th>日涨跌</th>
+        <th>申购状态</th><th>代销限额</th><th>直销限额</th><th>起购</th><th>年费率</th><th>规模</th><th>净值日期</th>
+      </tr></thead>
+      <tbody id="otc-body"></tbody>
+    </table>
+    <div class="foot-note">
+      代销限额 = 天天基金口径；直销额度数据源未拆分，显示“—”。两者是不同渠道，
+      <b>额度独立、不能相加</b>；是否同时可买以基金公司公告为准。年费率 = 管理费 + 托管费 + 销售服务费。
+    </div>
+  </section>
+
+  <section class="panel" data-page="indicators">
+    <h2>风险与口径</h2>
+    <ul class="triggers" id="risks"></ul>
+  </section>
+
+  <footer>
+    <div id="warnings"></div>
+    <div style="margin-top:8px">规则只描述当前位置与仓位缺口，不预测涨跌；数据缺失时显示“—”，不用 0 顶替。</div>
+  </footer>
+</div>
+
+<script>
+const STATIC_MODE = {{ 'true' if static_mode else 'false' }};
+const STATIC_DATA = {{ static_data_json | safe }};
+const B = {{ board_json | safe }};
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
+  {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+));
+const pct = (v, digits = 1, signed = true) => {
+  if (v == null || Number.isNaN(v)) return "—";
+  const s = (v * 100).toFixed(digits) + "%";
+  return signed && v > 0 ? "+" + s : s;
+};
+const num = (v, d = 3) => (v == null ? "—" : Number(v).toFixed(d));
+const money = (v) => {
+  if (v == null) return "—";
+  const a = Math.abs(v);
+  if (a >= 1e8) return (v / 1e8).toFixed(2) + " 亿";
+  if (a >= 1e4) return (v / 1e4).toFixed(2) + " 万";
+  return Number(v).toFixed(0);
+};
+const cls = (v) => (v == null ? "flat" : v > 0 ? "up" : v < 0 ? "down" : "flat");
+const groupLabel = (f) => f.group_label || f.group || "—";
+const premiumClass = (p) => (p == null ? "" : p <= 0 ? "cheap" : p <= 0.03 ? "mid" : "hot");
+
+function renderCards() {
+  const idx = Object.fromEntries(B.indices.map((i) => [i.symbol, i]));
+  const ndx = idx.NDX || {};
+  const spx = idx.SPX || {};
+  const vxn = (ndx.vxn != null) ? ndx.vxn : (idx.VXN ? idx.VXN.price : null);
+  const cards = [
+    { k: "纳斯达克100", v: num(ndx.price, 2), s: pct(ndx.chg_pct), c: cls(ndx.chg_pct) },
+    { k: "标普500", v: num(spx.price, 2), s: pct(spx.chg_pct), c: cls(spx.chg_pct) },
+    { k: "距前高", v: pct(ndx.drawdown_from_high), s: "纳指100，负值=回撤", c: cls(ndx.drawdown_from_high) },
+    { k: "200 日线偏离", v: pct(ndx.ma200_dev), s: "正=站上均线", c: cls(ndx.ma200_dev) },
+    { k: "VXN", v: num(vxn, 1), s: vxn == null ? "不可得" : (vxn >= 35 ? "恐慌区" : vxn >= 25 ? "警戒区" : "正常"),
+      c: vxn == null ? "flat" : vxn >= 35 ? "up" : "flat" },
+    { k: "Forward PE 分位", v: pct(ndx.forward_pe_pct, 0, false),
+      s: ndx.forward_pe == null ? "—" : ("PE " + num(ndx.forward_pe, 1)), c: "flat" },
+  ];
+  $("cards").innerHTML = cards.map((c) => `
+    <div class="card">
+      <div class="k"><span>${esc(c.k)}</span></div>
+      <div class="v ${c.c}">${esc(c.v)}</div>
+      <div class="s">${esc(c.s)}</div>
+    </div>`).join("");
+}
+
+function exchangeRows(rows) {
+  const sorted = [...rows].sort((a, b) => {
+    const pa = a.premium ?? a.t1_premium ?? -9;
+    const pb = b.premium ?? b.t1_premium ?? -9;
+    return pb - pa;  // 溢价从高到低
+  });
+  return sorted.length ? sorted.map((f) => {
+    const useT1 = f.premium == null && f.t1_premium != null;
+    const prem = useT1 ? f.t1_premium : f.premium;
+    const tag = useT1
+      ? `<span class="tag-t1" title="IOPV 不可得，按 ${esc(f.premium_date || "最近")} 净值估算">T-1</span>`
+      : (f.premium_source === "iopv" ? '<span class="tag-live" title="IOPV 口径；收盘后为最后盘中估值">IOPV</span>' : "");
+    return `
+    <tr title="${esc(f.reason || "")}">
+      <td>${esc(f.code)}${f.is_holding ? '<span class="holding-tag">持仓</span>' : ""}</td>
+      <td class="name" title="${esc(f.name)}">${esc(f.name)}</td>
+      <td>${num(f.price)}</td>
+      <td class="${cls(f.chg_pct)}">${pct(f.chg_pct)}</td>
+      <td>${money(f.amount)}</td>
+      <td>${num(f.iopv)}</td>
+      <td class="prem ${premiumClass(prem)}">${pct(prem, 2)}${tag}</td>
+      <td>${num(f.nav)}</td>
+      <td class="${cls(f.t1_premium)}">${pct(f.t1_premium, 2)}</td>
+      <td>${f.fee == null ? "—" : pct(f.fee, 2) + "/年"}</td>
+    </tr>`;
+  }).join("") : '<tr><td colspan="10" class="empty">无数据</td></tr>';
+}
+
+function renderExchange() {
+  const ndx = B.funds.filter(
+    (f) => f.channel === "exchange" && (f.group === "ndx" || f.group === "ndx_tech")
+  );
+  const spx = B.funds.filter((f) => f.channel === "exchange" && f.group === "sp500");
+  $("ex-ndx-body").innerHTML = exchangeRows(ndx);
+  $("ex-spx-body").innerHTML = exchangeRows(spx);
+  $("ex-ndx-count").textContent = ndx.length + " 只";
+  $("ex-spx-count").textContent = spx.length + " 只";
+}
+
+function renderOtc() {
+  const rows = B.funds.filter((f) => f.channel === "otc");
+  const stClass = (s) => (s || "").includes("暂停") ? "paused" : (s || "").includes("限") ? "limited" : "ok";
+  const st = (f) => f.purchase_status || "未知";
+  const agency = (f) => {
+    if (st(f).includes("暂停")) return "0（暂停）";
+    if (f.agency_limit == null) return "不限/未披露";
+    return money(f.agency_limit);
+  };
+  $("otc-body").innerHTML = rows.length ? rows.map((f) => `
+    <tr title="${esc(f.limit_note || "")}">
+      <td>${esc(f.code)}</td>
+      <td class="name" title="${esc(f.name)}">${esc(f.name)}</td>
+      <td>${num(f.nav, 4)}</td>
+      <td class="${cls(f.nav_chg_pct)}">${pct(f.nav_chg_pct)}</td>
+      <td><span class="st ${stClass(st(f))}">${esc(st(f))}</span></td>
+      <td>${agency(f)}</td>
+      <td title="${esc(f.limit_note || "")}">${f.direct_limit == null ? "—" : money(f.direct_limit)}</td>
+      <td>${f.min_purchase == null ? "—" : money(f.min_purchase)}</td>
+      <td>${f.fee == null ? "—" : pct(f.fee, 2) + "/年"}</td>
+      <td>${money(f.scale)}</td>
+      <td>${esc(f.nav_date || "—")}</td>
+    </tr>`).join("") : '<tr><td colspan="11" class="empty">无场外数据</td></tr>';
+  $("otc-count").textContent = rows.length + " 只";
+}
+
+function renderMeta() {
+  const live = B.source === "mewave";
+  $("src").textContent = live ? "mewave · 实时" : B.source;
+  $("src").className = "badge " + (live ? "live" : "demo");
+  $("ts").textContent = B.observed_at || "—";
+  const stamps = (B.indices || []).map((i) => i.updated_at).filter(Boolean).sort();
+  $("mkt-ts").textContent = stamps.length ? stamps[stamps.length - 1] : "—";
+  $("policy").textContent = B.policy_version || "—";
+  const warnings = B.warnings || [];
+  $("banner").className = "banner" + (warnings.length ? "" : " hide");
+  $("banner").textContent = warnings.join(" ｜ ");
+  $("warnings").textContent = warnings.join(" ｜ ");
+}
+
+function render() {
+  renderMeta();
+  renderCards();
+  renderExchange();
+  renderOtc();
+}
+
+function switchPage(name) {
+  document.querySelectorAll("section[data-page]").forEach((el) => {
+    el.hidden = el.dataset.page !== name;
+  });
+  document.querySelectorAll(".tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.page === name);
+  });
+  if (history.replaceState) history.replaceState(null, "", "#" + name);
+}
+
+const CHART_W = 1120, CHART_ML = 66, CHART_MR = 190;
+const CHART_PW = CHART_W - CHART_ML - CHART_MR;
+const FUND_COLORS_JS = ["#3ddc97", "#ffb454", "#5aa9ff", "#b98bff", "#ff6b6b", "#66d9ef"];
+const STATE_CN = {
+  uptrend: "上升", retreat: "回撤", retreat2nd: "二次回撤",
+  downtrend: "下降", recover: "修复", recover2nd: "二次修复", range: "震荡",
+};
+const NdxHover = { data: null, promise: null };
+const FundHover = { data: null, codes: "", promise: null };
+const SeasonHover = { data: null, key: "", promise: null };
+const YEAR_COLORS_JS = {
+  2021: "#f59e0b", 2022: "#f472b6", 2023: "#34d399",
+  2024: "#fb923c", 2025: "#a78bfa", 2026: "#60a5fa",
+};
+
+function selectedFundCodes() {
+  return Array.from(
+    document.querySelectorAll("#fund-picker input[data-code]:checked")
+  ).map((el) => el.dataset.code);
+}
+
+function ensureNdxHover() {
+  if (STATIC_MODE && STATIC_DATA && STATIC_DATA.ndx) {
+    NdxHover.data = STATIC_DATA.ndx;
+    return Promise.resolve(NdxHover.data);
+  }
+  if (NdxHover.data) return Promise.resolve(NdxHover.data);
+  if (!NdxHover.promise) {
+    NdxHover.promise = fetch("/api/charts/ndx-livermore", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { NdxHover.data = d; return d; })
+      .catch(() => null)
+      .finally(() => { NdxHover.promise = null; });
+  }
+  return NdxHover.promise;
+}
+
+function seasonRange() {
+  return {
+    start: Number(document.getElementById("season-start").value),
+    end: Number(document.getElementById("season-end").value),
+  };
+}
+
+function ensureSeasonHover() {
+  if (STATIC_MODE && STATIC_DATA && STATIC_DATA.season) {
+    SeasonHover.data = STATIC_DATA.season;
+    return Promise.resolve(SeasonHover.data);
+  }
+  const { start, end } = seasonRange();
+  if (!start || !end) return Promise.resolve(null);
+  const key = start + "-" + end;
+  if (SeasonHover.data && SeasonHover.key === key) return Promise.resolve(SeasonHover.data);
+  if (!SeasonHover.promise) {
+    SeasonHover.key = key;
+    SeasonHover.promise = fetch(
+      "/api/charts/ndx-seasonality?start_year=" + start + "&end_year=" + end,
+      { cache: "no-store" }
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (SeasonHover.key === key) SeasonHover.data = d; return d; })
+      .catch(() => null)
+      .finally(() => { SeasonHover.promise = null; });
+  }
+  return SeasonHover.promise;
+}
+
+function refreshSeasonChart(changed) {
+  if (STATIC_MODE) return;
+  let { start, end } = seasonRange();
+  if (start > end) {
+    if (changed === "start") {
+      end = start;
+      document.getElementById("season-end").value = end;
+    } else {
+      start = end;
+      document.getElementById("season-start").value = start;
+    }
+  }
+  document.getElementById("season-label").textContent = start + "–" + end;
+  document.getElementById("season-chart").src =
+    "/api/charts/seasonality.svg?start_year=" + start + "&end_year=" + end + "&t=" + Date.now();
+  SeasonHover.data = null;
+  SeasonHover.key = "";
+  SeasonHover.promise = null;
+  ensureSeasonHover();
+}
+
+function ensureFundHover() {
+  if (STATIC_MODE && STATIC_DATA && STATIC_DATA.funds) {
+    FundHover.data = STATIC_DATA.funds;
+    return Promise.resolve(FundHover.data);
+  }
+  const codes = selectedFundCodes();
+  if (!codes.length) {
+    FundHover.data = null;
+    FundHover.codes = "";
+    return Promise.resolve(null);
+  }
+  const key = codes.join(",");
+  if (FundHover.data && FundHover.codes === key) return Promise.resolve(FundHover.data);
+  if (!FundHover.promise) {
+    FundHover.codes = key;
+    FundHover.promise = fetch(
+      "/api/charts/fund-returns?codes=" + encodeURIComponent(key) + "&years=5&mode=rolling5y",
+      { cache: "no-store" }
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (FundHover.codes === key) FundHover.data = d; return d; })
+      .catch(() => null)
+      .finally(() => { FundHover.promise = null; });
+  }
+  return FundHover.promise;
+}
+
+function hideChartTip(tip, guide) {
+  if (tip) tip.style.display = "none";
+  if (guide) guide.style.display = "none";
+}
+
+function placeChartTip(tip, rect, xPx, clientY) {
+  tip.style.display = "block";
+  let left = xPx + 14;
+  if (left + tip.offsetWidth > rect.width - 6) left = xPx - tip.offsetWidth - 14;
+  let top = clientY - rect.top - tip.offsetHeight - 12;
+  if (top < 6) top = clientY - rect.top + 16;
+  if (top + tip.offsetHeight > rect.height - 6) top = rect.height - tip.offsetHeight - 6;
+  tip.style.left = Math.max(6, left) + "px";
+  tip.style.top = Math.max(6, top) + "px";
+}
+
+function bindSeasonHover() {
+  const wrap = document.getElementById("season-wrap");
+  if (!wrap) return;
+  const tip = document.getElementById("season-tip");
+  const guide = document.getElementById("season-guide");
+
+  wrap.addEventListener("mousemove", async (e) => {
+    await ensureSeasonHover();
+    const data = SeasonHover.data;
+    if (!data || !data.years || !data.years.length) { hideChartTip(tip, guide); return; }
+    const rect = wrap.getBoundingClientRect();
+    const xView = (e.clientX - rect.left) / rect.width * CHART_W;
+    const plot = (xView - CHART_ML) / CHART_PW;
+    if (plot < 0 || plot > 1) { hideChartTip(tip, guide); return; }
+
+    const doy = 1 + plot * 364;
+    const rows = [];
+    data.years.forEach((item) => {
+      let best = -1, bestDiff = 999;
+      item.dates.forEach((day, i) => {
+        const dt = new Date(day + "T00:00:00Z");
+        const start = Date.UTC(dt.getUTCFullYear(), 0, 1);
+        const itemDoy = Math.floor((dt - start) / 86400000) + 1;
+        const diff = Math.abs(itemDoy - doy);
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+      });
+      if (best < 0 || bestDiff > 15) return;
+      const color = YEAR_COLORS_JS[item.year] || "#93a0b4";
+      rows.push(
+        '<div class="tip-row"><span><i class="dot" style="background:' + color + '"></i>' +
+        item.year + " " + item.dates[best].slice(5) + "</span><b>" + pct(item.returns[best], 1) + "</b></div>"
+      );
+    });
+    if (!rows.length) { hideChartTip(tip, guide); return; }
+
+    tip.innerHTML =
+      '<div class="tip-date">年初 → 最近交易日 · YTD 累计收益</div>' +
+      rows.join("");
+    const xPx = (CHART_ML + plot * CHART_PW) / CHART_W * rect.width;
+    guide.style.left = xPx + "px";
+    guide.style.display = "block";
+    placeChartTip(tip, rect, xPx, e.clientY);
+  });
+  wrap.addEventListener("mouseleave", () => hideChartTip(tip, guide));
+}
+
+function bindNdxHover() {
+  const wrap = document.getElementById("ndx-wrap");
+  if (!wrap) return;
+  const tip = document.getElementById("ndx-tip");
+  const guide = document.getElementById("ndx-guide");
+  const fmt = (v) => v == null ? "—" : Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+  wrap.addEventListener("mousemove", async (e) => {
+    await ensureNdxHover();
+    const data = NdxHover.data;
+    if (!data || !data.dates || data.dates.length < 2) return;
+    const rect = wrap.getBoundingClientRect();
+    const xView = (e.clientX - rect.left) / rect.width * CHART_W;
+    const plot = (xView - CHART_ML) / CHART_PW;
+    if (plot < -0.02 || plot > 1.02) { hideChartTip(tip, guide); return; }
+
+    const n = data.dates.length;
+    const i = Math.max(0, Math.min(n - 1, Math.round(plot * (n - 1))));
+    const state = STATE_CN[data.states[i]] || data.states[i] || "—";
+    tip.innerHTML =
+      '<div class="tip-date">' + data.dates[i] + " · " + state + "</div>" +
+      '<div class="tip-row"><span>收盘</span><b>' + fmt(data.close[i]) + "</b></div>" +
+      '<div class="tip-row"><span>MA20</span><b>' + fmt((data.ma20 || [])[i]) + "</b></div>" +
+      '<div class="tip-row"><span>MA60</span><b>' + fmt((data.ma60 || [])[i]) + "</b></div>" +
+      '<div class="tip-row"><span>MA200</span><b>' + fmt((data.ma200 || [])[i]) + "</b></div>";
+    const xPx = (CHART_ML + (i / (n - 1)) * CHART_PW) / CHART_W * rect.width;
+    guide.style.left = xPx + "px";
+    guide.style.display = "block";
+    placeChartTip(tip, rect, xPx, e.clientY);
+  });
+  wrap.addEventListener("mouseleave", () => hideChartTip(tip, guide));
+}
+
+function nearestDateIndex(dates, t) {
+  let lo = 0, hi = dates.length - 1;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (Date.parse(dates[mid] + "T00:00:00Z") < t) lo = mid + 1;
+    else hi = mid;
+  }
+  if (lo > 0) {
+    const prev = Date.parse(dates[lo - 1] + "T00:00:00Z");
+    const cur = Date.parse(dates[lo] + "T00:00:00Z");
+    if (Math.abs(prev - t) < Math.abs(cur - t)) return lo - 1;
+  }
+  return lo;
+}
+
+function bindFundHover() {
+  const wrap = document.getElementById("fund-wrap");
+  if (!wrap) return;
+  const tip = document.getElementById("fund-tip");
+  const guide = document.getElementById("fund-guide");
+
+  wrap.addEventListener("mousemove", async (e) => {
+    await ensureFundHover();
+    const data = FundHover.data;
+    if (!data || !data.series || !data.series.length) { hideChartTip(tip, guide); return; }
+    const rect = wrap.getBoundingClientRect();
+    const xView = (e.clientX - rect.left) / rect.width * CHART_W;
+    const plot = (xView - CHART_ML) / CHART_PW;
+    if (plot < 0 || plot > 1) { hideChartTip(tip, guide); return; }
+
+    const t0 = Date.parse(data.start_date + "T00:00:00Z");
+    const t1 = Date.parse(data.end_date + "T00:00:00Z");
+    const t = t0 + plot * (t1 - t0);
+    const dateStr = new Date(t).toISOString().slice(0, 10);
+    const rows = [];
+    data.series.forEach((item, idx) => {
+      const first = Date.parse(item.dates[0] + "T00:00:00Z");
+      const last = Date.parse(item.dates[item.dates.length - 1] + "T00:00:00Z");
+      if (t < first - 5 * 86400000 || t > last + 5 * 86400000) return;
+      const j = nearestDateIndex(item.dates, t);
+      const color = FUND_COLORS_JS[idx % FUND_COLORS_JS.length];
+      rows.push(
+        '<div class="tip-row"><span><i class="dot" style="background:' + color + '"></i>' +
+        item.code + " " + item.name + "</span><b>" + pct(item.returns[j], 1) + "</b></div>"
+      );
+    });
+    if (!rows.length) { hideChartTip(tip, guide); return; }
+
+    tip.innerHTML = '<div class="tip-date">持有到期日 ' + dateStr + "</div>" + rows.join("");
+    const xPx = (CHART_ML + plot * CHART_PW) / CHART_W * rect.width;
+    guide.style.left = xPx + "px";
+    guide.style.display = "block";
+    placeChartTip(tip, rect, xPx, e.clientY);
+  });
+  wrap.addEventListener("mouseleave", () => hideChartTip(tip, guide));
+}
+
+function refreshFundChart() {
+  if (STATIC_MODE) return;
+  const codes = selectedFundCodes();
+  const img = document.getElementById("fund-chart");
+  if (!img) return;
+  img.src = "/api/charts/funds.svg?codes=" + encodeURIComponent(codes.join(",")) + "&t=" + Date.now();
+  FundHover.data = null;
+  FundHover.codes = "";
+  ensureFundHover();
+}
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => switchPage(btn.dataset.page));
+});
+document.querySelectorAll("#fund-picker input[data-code]").forEach((cb) => {
+  cb.addEventListener("change", refreshFundChart);
+});
+const fundAll = document.getElementById("fund-all");
+if (fundAll) {
+  fundAll.addEventListener("click", () => {
+    document.querySelectorAll("#fund-picker input[data-code]").forEach((cb) => { cb.checked = true; });
+    refreshFundChart();
+  });
+}
+["season-start", "season-end"].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("input", () => refreshSeasonChart(id === "season-start" ? "start" : "end"));
+  }
+});
+
+let left = 30;
+function tick() {
+  left -= 1;
+  $("countdown").textContent = left > 0 ? left : "0";
+  if (left <= 0) { left = 30; refresh(); }
+}
+async function refresh() {
+  if (STATIC_MODE) return;
+  try {
+    const resp = await fetch("/api/board", { cache: "no-store" });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const next = await resp.json();
+    Object.keys(B).forEach((k) => delete B[k]);
+    Object.assign(B, next);
+    render();
+  } catch (e) {
+    $("ts").textContent = "刷新失败：" + e.message;
+  }
+}
+render();
+switchPage(location.hash === "#technical" ? "technical" : "indicators");
+bindNdxHover();
+bindFundHover();
+bindSeasonHover();
+ensureNdxHover();
+ensureFundHover();
+ensureSeasonHover();
+if (STATIC_MODE) {
+  const countdown = document.getElementById("countdown");
+  if (countdown) countdown.textContent = "静态";
+} else {
+  setInterval(tick, 1000);
+}
+</script>
+</body>
+</html>
