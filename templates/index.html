@@ -265,12 +265,12 @@ a{color:var(--blue);text-decoration:none}
     <h2>任意时点买入并持有 5 年的收益</h2>
     <div class="sub">
       横轴 = <b>持有到期日</b>（买入日 + 5 年），纵轴 = 从该买入日持有 5 年的累计收益（滚动窗口）。
-      勾选要对比的基金，默认只显示纳指与标普。
+      静态版默认展示纳指、标普与广发全球精选。
     </div>
     <div class="fund-picker" id="fund-picker">
       <label><input type="checkbox" data-code="513100" checked {% if static_mode %}disabled{% endif %}> 国泰纳指100</label>
       <label><input type="checkbox" data-code="513500" checked {% if static_mode %}disabled{% endif %}> 博时标普500</label>
-      <label><input type="checkbox" data-code="270023" {% if static_mode %}disabled{% endif %}> 广发全球精选</label>
+      <label><input type="checkbox" data-code="270023" checked {% if static_mode %}disabled{% endif %}> 广发全球精选</label>
       <label><input type="checkbox" data-code="000043" {% if static_mode %}disabled{% endif %}> 嘉实美国成长</label>
       <label class="disabled"><input type="checkbox" disabled> 016701（不足5年）</label>
       <button class="btn" type="button" id="fund-all" {% if static_mode %}disabled{% endif %}>全选</button>

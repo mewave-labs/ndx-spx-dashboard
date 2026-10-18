@@ -106,7 +106,7 @@ def build(
     snapshot_file: Path | None = None,
     season_start: int = 2021,
     season_end: int = 2026,
-    fund_codes: str = "513100,513500",
+    fund_codes: str = "513100,513500,270023",
 ) -> Path:
     if observed_at is None:
         observed_at = datetime.now(ZoneInfo("Asia/Shanghai")).isoformat(timespec="seconds")
@@ -173,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--snapshot", default=None, help="可选：离线快照 JSON")
     parser.add_argument("--season-start", type=int, default=2021)
     parser.add_argument("--season-end", type=int, default=2026)
-    parser.add_argument("--fund-codes", default="513100,513500")
+    parser.add_argument("--fund-codes", default="513100,513500,270023")
     args = parser.parse_args(argv)
 
     try:
